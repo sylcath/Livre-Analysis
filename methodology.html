@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Méthodologie — Décomposition du salaire moyen en France (1950–2018)</title>
+    <style>
+        :root {
+            --color-net: #27ae60;
+            --color-gross: #2980b9;
+            --color-cost: #c0392b;
+            --color-bg: #fafafa;
+            --color-card: #ffffff;
+            --color-text: #2c3e50;
+            --color-muted: #7f8c8d;
+            --color-border: #e0e0e0;
+            --color-code-bg: #f4f4f4;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            color: var(--color-text);
+            background: var(--color-bg);
+            line-height: 1.75;
+            font-size: 17px;
+        }
+
+        header {
+            background: var(--color-text);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        header p {
+            font-size: 1rem;
+            opacity: 0.8;
+            font-style: italic;
+        }
+
+        main {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 2px solid var(--color-text);
+            letter-spacing: -0.01em;
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p { margin-bottom: 1rem; }
+
+        .figure {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .figure img {
+            max-width: 100%;
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+        }
+
+        .figure figcaption {
+            font-size: 0.85rem;
+            color: var(--color-muted);
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.92rem;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        thead th {
+            background: var(--color-text);
+            color: white;
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        tbody td {
+            padding: 0.5rem 0.8rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        tbody tr:nth-child(even) { background: #f8f8f8; }
+        tbody tr:hover { background: #eef5fc; }
+
+        td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+        .formula-block {
+            background: var(--color-code-bg);
+            border-left: 4px solid var(--color-gross);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            font-family: 'Cambria Math', 'Georgia', serif;
+            font-size: 1.05rem;
+            overflow-x: auto;
+        }
+
+        .formula-block .label {
+            font-size: 0.8rem;
+            color: var(--color-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.3rem;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        code {
+            font-family: 'Consolas', 'Courier New', monospace;
+            background: var(--color-code-bg);
+            padding: 0.15em 0.4em;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        .source-file {
+            display: inline-block;
+            background: #e8f4f8;
+            border: 1px solid #b8d8e8;
+            border-radius: 3px;
+            padding: 0.1em 0.5em;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85em;
+            color: #1a6b8a;
+        }
+
+        .color-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+
+        .dot-net { background: var(--color-net); }
+        .dot-gross { background: var(--color-gross); }
+        .dot-cost { background: var(--color-cost); }
+
+        .note {
+            background: #fff8e1;
+            border-left: 4px solid #f9a825;
+            padding: 0.8rem 1.2rem;
+            margin: 1.5rem 0;
+            font-size: 0.92rem;
+        }
+
+        .note strong { color: #e65100; }
+
+        .step-list {
+            counter-reset: step;
+            list-style: none;
+            padding: 0;
+        }
+
+        .step-list li {
+            counter-increment: step;
+            padding: 0.8rem 0 0.8rem 3rem;
+            position: relative;
+            border-bottom: 1px dashed var(--color-border);
+        }
+
+        .step-list li:last-child { border-bottom: none; }
+
+        .step-list li::before {
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0.75rem;
+            width: 2rem;
+            height: 2rem;
+            background: var(--color-text);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 2rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        footer {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            border-top: 1px solid var(--color-border);
+            font-size: 0.85rem;
+            color: var(--color-muted);
+        }
+
+        a { color: var(--color-gross); }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Décomposition du salaire moyen mensuel en France</h1>
+    <p>Net, brut et coût employeur — 1950 à 2018, en euros constants 2026</p>
+</header>
+
+<main>
+
+    <!-- ========== OVERVIEW ========== -->
+    <h2>1. Objectif</h2>
+    <p>
+        Ce document décrit la méthodologie utilisée pour construire un graphique montrant
+        l'évolution du <strong>salaire moyen mensuel</strong> d'un salarié à temps complet
+        en France, décomposé en trois niveaux :
+    </p>
+    <ul style="margin-bottom:1rem; padding-left:1.5rem;">
+        <li><span class="color-dot dot-net"></span> <strong>Salaire net</strong> — ce que le salarié perçoit effectivement</li>
+        <li><span class="color-dot dot-gross"></span> <strong>Salaire brut</strong> — net + cotisations salariales (y.c. CSG/CRDS)</li>
+        <li><span class="color-dot dot-cost"></span> <strong>Coût employeur</strong> (super-brut) — brut + cotisations patronales</li>
+    </ul>
+    <p>
+        L'ensemble est exprimé en <strong>euros constants 2026</strong> afin de neutraliser
+        l'effet de l'inflation et de permettre une lecture en termes de pouvoir d'achat.
+    </p>
+
+    <figure class="figure">
+        <img src="salary_decomposition.png" alt="Décomposition du salaire moyen mensuel en France, 1950-2018">
+        <figcaption>Figure 1 — Salaire moyen mensuel en France (temps complet, euros constants 2026)</figcaption>
+    </figure>
+
+    <!-- ========== SOURCES ========== -->
+    <h2>2. Sources de données</h2>
+    <p>
+        Toutes les données proviennent de l'<strong>INSEE</strong> (Institut National de la
+        Statistique et des Études Économiques), dossier <em>INSEE 2020</em> (base Tous salariés
+        2018, séries longues sur les salaires).
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Fichier</th>
+                <th>Contenu</th>
+                <th>Années</th>
+                <th>Rôle</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="source-file">EQTP01.xlsx</span></td>
+                <td>Salaire net annuel moyen (en euros courants)</td>
+                <td class="num">1996–2018</td>
+                <td>Ancrage du niveau absolu du salaire net</td>
+            </tr>
+            <tr>
+                <td><span class="source-file">EVO_CR.xlsx</span></td>
+                <td>Taux de croissance annuels du salaire net moyen (euros courants)</td>
+                <td class="num">1951–2018</td>
+                <td>Extension de la série en amont de 1996</td>
+            </tr>
+            <tr>
+                <td><span class="source-file">CS3.xlsx</span></td>
+                <td>Taux de cotisations salariales par tranche de salaire brut (y.c. CSG et CRDS),
+                    non-cadres et cadres</td>
+                <td class="num">1950–2020</td>
+                <td>Passage du net au brut (décomposition par tranche)</td>
+            </tr>
+            <tr>
+                <td><span class="source-file">CP2.xlsx</span></td>
+                <td>Taux de cotisations patronales par tranche de salaire brut,
+                    non-cadres et cadres</td>
+                <td class="num">1950–2020</td>
+                <td>Passage du brut au coût employeur (décomposition par tranche)</td>
+            </tr>
+            <tr>
+                <td><span class="source-file">PLAFOND.xlsx</span></td>
+                <td>Plafond mensuel brut de la Sécurité sociale (en euros courants)</td>
+                <td class="num">1950–2020</td>
+                <td>Seuil de transition entre tranches de cotisation</td>
+            </tr>
+            <tr>
+                <td><span class="source-file">inflation.xlsx</span></td>
+                <td>Indice des prix à la consommation (base 100 en 1951)</td>
+                <td class="num">1951–2020</td>
+                <td>Conversion en euros constants</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ========== METHODOLOGY ========== -->
+    <h2>3. Méthodologie</h2>
+
+    <h3>3.1 Vue d'ensemble</h3>
+    <p>La construction du graphique suit cinq étapes :</p>
+    <ol class="step-list">
+        <li>
+            <strong>Reconstituer le salaire net annuel moyen</strong> sur la période 1950–2018
+            en combinant les niveaux absolus (EQTP01) et les taux de croissance (EVO_CR).
+        </li>
+        <li>
+            <strong>Calculer le salaire brut</strong> à partir du salaire net et des taux de
+            cotisations salariales par tranche (CS3), en utilisant le plafond de la Sécurité
+            sociale (PLAFOND) comme seuil entre tranches.
+        </li>
+        <li>
+            <strong>Calculer le coût employeur</strong> à partir du salaire brut et des taux de
+            cotisations patronales par tranche (CP2).
+        </li>
+        <li>
+            <strong>Convertir en euros constants 2026</strong> à l'aide de l'indice des prix à
+            la consommation.
+        </li>
+        <li>
+            <strong>Convertir en valeurs mensuelles</strong> en divisant les montants annuels par 12.
+        </li>
+    </ol>
+
+    <!-- STEP 1 -->
+    <h3>3.2 Reconstitution du salaire net (étape 1)</h3>
+    <p>
+        Le fichier <span class="source-file">EQTP01.xlsx</span> fournit le salaire net annuel
+        moyen d'un salarié à temps complet pour la période 1996–2018. Ces valeurs constituent
+        l'<strong>ancrage</strong> de la série.
+    </p>
+    <p>
+        Pour étendre la série en amont jusqu'en 1950, on utilise les taux de croissance annuels
+        du salaire net moyen issus de <span class="source-file">EVO_CR.xlsx</span>
+        (colonne <em>« Salaire net moyen des salariés à temps complet »</em>). On procède par
+        <strong>rétro-extrapolation</strong> :
+    </p>
+
+    <div class="formula-block">
+        <div class="label">Rétro-extrapolation du salaire net</div>
+        Salaire_net(t−1) = Salaire_net(t) &divide; (1 + g<sub>t</sub> / 100)
+    </div>
+
+    <p>
+        où <em>g<sub>t</sub></em> est le taux de croissance en euros courants du salaire net
+        pour l'année <em>t</em>, tel que publié dans EVO_CR. On part de la valeur connue en
+        1996 (18 431 €/an) et on remonte année par année jusqu'en 1950.
+    </p>
+
+    <div class="note">
+        <strong>Note :</strong> Le taux de croissance de EVO_CR pour 2019 et 2020 est marqué
+        « nd » (non disponible) pour le salaire net moyen, et EQTP01 s'arrête en 2018.
+        La série s'arrête donc en 2018.
+    </div>
+
+    <!-- STEP 2-3 -->
+    <h3>3.3 Passage au brut (étape 2) : calcul par tranche</h3>
+    <p>
+        Les cotisations sociales en France s'appliquent par <strong>tranche de salaire brut</strong>,
+        délimitées par des multiples du plafond de la Sécurité sociale (<em>P</em>). Les taux
+        diffèrent entre la partie du salaire en dessous du plafond (tranche 1) et la partie
+        au-dessus (tranche 2). Le fichier <span class="source-file">CS3.xlsx</span> fournit ces
+        taux pour les salariés non-cadres, y compris CSG et CRDS :
+    </p>
+    <ul style="margin-bottom:1rem; padding-left:1.5rem;">
+        <li><strong>t<sub>s1</sub></strong> : taux salarial sur la partie &le; 1 plafond</li>
+        <li><strong>t<sub>s2</sub></strong> : taux salarial sur la partie entre 1 et 3 plafonds</li>
+    </ul>
+    <p>
+        Le plafond mensuel brut <em>P</em> est lu dans <span class="source-file">PLAFOND.xlsx</span>
+        (annualisé par multiplication par 12).
+    </p>
+
+    <p>La résolution du salaire brut <em>G</em> à partir du salaire net procède en deux temps :</p>
+
+    <div class="formula-block">
+        <div class="label">Cas A : salaire brut &le; plafond</div>
+        net = G &times; (1 − t<sub>s1</sub>/100)<br>
+        &rArr; G = net &divide; (1 − t<sub>s1</sub>/100)<br><br>
+        On retient ce résultat si G &le; P &times; 12.
+    </div>
+
+    <div class="formula-block">
+        <div class="label">Cas B : salaire brut &gt; plafond</div>
+        net = G − P&times;12 &times; t<sub>s1</sub>/100 − (G − P&times;12) &times; t<sub>s2</sub>/100<br>
+        net = G &times; (1 − t<sub>s2</sub>/100) − P&times;12 &times; (t<sub>s1</sub> − t<sub>s2</sub>)/100<br><br>
+        &rArr; G = (net + P&times;12 &times; (t<sub>s1</sub> − t<sub>s2</sub>)/100) &divide; (1 − t<sub>s2</sub>/100)
+    </div>
+
+    <p>
+        L'algorithme essaie d'abord le cas A. Si le brut résultant dépasse le plafond, il
+        bascule automatiquement sur le cas B. La cohérence est vérifiée en recalculant le net
+        à partir du brut obtenu (erreur maximale : 0 €).
+    </p>
+
+    <p>
+        En pratique, le <strong>cas B</strong> (deux tranches) s'applique pour les années
+        <strong>1950–1961</strong> et ponctuellement en <strong>1974 et 1980</strong>, où le
+        salaire moyen excédait le plafond de la Sécurité sociale. À partir de 1982, le salaire
+        moyen reste en dessous du plafond :
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Année</th>
+                <th>Brut/mois</th>
+                <th>Plafond/mois</th>
+                <th>Ratio</th>
+                <th>Tranches</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>1950</td><td class="num">37 &euro;</td><td class="num">34 &euro;</td><td class="num">107,5 %</td><td>1 + 2</td></tr>
+            <tr><td>1960</td><td class="num">98 &euro;</td><td class="num">87 &euro;</td><td class="num">112,5 %</td><td>1 + 2</td></tr>
+            <tr><td>1970</td><td class="num">221 &euro;</td><td class="num">229 &euro;</td><td class="num">96,6 %</td><td>1 seule</td></tr>
+            <tr><td>1980</td><td class="num">765 &euro;</td><td class="num">764 &euro;</td><td class="num">100,1 %</td><td>1 + 2</td></tr>
+            <tr><td>1990</td><td class="num">1 624 &euro;</td><td class="num">1 665 &euro;</td><td class="num">97,5 %</td><td>1 seule</td></tr>
+            <tr><td>2000</td><td class="num">2 096 &euro;</td><td class="num">2 241 &euro;</td><td class="num">93,5 %</td><td>1 seule</td></tr>
+            <tr><td>2010</td><td class="num">2 648 &euro;</td><td class="num">2 885 &euro;</td><td class="num">91,8 %</td><td>1 seule</td></tr>
+            <tr><td>2018</td><td class="num">2 968 &euro;</td><td class="num">3 311 &euro;</td><td class="num">89,6 %</td><td>1 seule</td></tr>
+        </tbody>
+    </table>
+
+    <h3>3.4 Passage au coût employeur (étape 3)</h3>
+    <p>
+        Le fichier <span class="source-file">CP2.xlsx</span> fournit les taux de cotisations
+        patronales par tranche pour les salariés non-cadres :
+    </p>
+    <ul style="margin-bottom:1rem; padding-left:1.5rem;">
+        <li><strong>t<sub>p1</sub></strong> : taux patronal sur la partie &le; 1 plafond</li>
+        <li><strong>t<sub>p2</sub></strong> : taux patronal sur la partie entre 1 et 3 plafonds</li>
+    </ul>
+
+    <div class="formula-block">
+        <div class="label">Coût employeur (cas A : G &le; P&times;12)</div>
+        Coût = G &times; (1 + t<sub>p1</sub>/100)
+    </div>
+
+    <div class="formula-block">
+        <div class="label">Coût employeur (cas B : G &gt; P&times;12)</div>
+        Coût = G + P&times;12 &times; t<sub>p1</sub>/100 + (G − P&times;12) &times; t<sub>p2</sub>/100
+    </div>
+
+    <p>
+        Les taux effectifs (moyens pondérés entre tranches) qui en résultent sont les suivants :
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Année</th>
+                <th>t<sub>s</sub> effectif</th>
+                <th>t<sub>p</sub> effectif</th>
+                <th>Mode</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>1950</td><td class="num">5,6 %</td><td class="num">24,8 %</td><td>2 tranches</td></tr>
+            <tr><td>1960</td><td class="num">5,5 %</td><td class="num">24,1 %</td><td>2 tranches</td></tr>
+            <tr><td>1970</td><td class="num">8,2 %</td><td class="num">32,8 %</td><td>1 tranche</td></tr>
+            <tr><td>1980</td><td class="num">12,8 %</td><td class="num">39,0 %</td><td>2 tranches</td></tr>
+            <tr><td>1990</td><td class="num">17,9 %</td><td class="num">37,9 %</td><td>1 tranche</td></tr>
+            <tr><td>2000</td><td class="num">21,0 %</td><td class="num">40,8 %</td><td>1 tranche</td></tr>
+            <tr><td>2010</td><td class="num">21,5 %</td><td class="num">41,7 %</td><td>1 tranche</td></tr>
+            <tr><td>2018</td><td class="num">21,4 %</td><td class="num">39,9 %</td><td>1 tranche</td></tr>
+        </tbody>
+    </table>
+
+    <div class="note">
+        <strong>Hypothèse :</strong> Les taux de cotisation utilisés sont ceux applicables aux
+        salariés <em>non-cadres</em>. Les taux cadres diffèrent pour certaines composantes
+        (retraite complémentaire, APEC, prévoyance, CET). Le salaire moyen étant une moyenne
+        pondérée de cadres et non-cadres, les taux effectifs réels se situent entre les deux
+        barèmes. L'écart est toutefois modéré pour la tranche sous plafond.
+    </div>
+
+    <!-- STEP 4 -->
+    <h3>3.5 Conversion en euros constants 2026 (étape 4)</h3>
+    <p>
+        Le fichier <span class="source-file">inflation.xlsx</span> fournit un indice des prix à
+        la consommation (ensemble des ménages, y compris tabac) en base 100 au 1<sup>er</sup> janvier
+        1951, couvrant la période 1951–2020.
+    </p>
+    <p>
+        L'indice a été étendu de 2020 à 2026 à l'aide des taux d'inflation annuels moyens
+        publiés par l'INSEE :
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Année</th>
+                <th>Inflation annuelle moyenne</th>
+                <th>Indice (base 100 = 1951)</th>
+                <th>Source</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>2020</td><td class="num">+0,5 %</td><td class="num">1 581,7</td><td>inflation.xlsx</td></tr>
+            <tr><td>2021</td><td class="num">+1,6 %</td><td class="num">1 607,0</td><td>INSEE</td></tr>
+            <tr><td>2022</td><td class="num">+5,2 %</td><td class="num">1 690,6</td><td>INSEE</td></tr>
+            <tr><td>2023</td><td class="num">+4,9 %</td><td class="num">1 773,4</td><td>INSEE</td></tr>
+            <tr><td>2024</td><td class="num">+2,0 %</td><td class="num">1 808,9</td><td>INSEE</td></tr>
+            <tr><td>2025</td><td class="num">+0,9 %</td><td class="num">1 825,2</td><td>INSEE</td></tr>
+            <tr><td>2026</td><td class="num">+1,5 % (est.)</td><td class="num">1 852,5</td><td>Estimation</td></tr>
+        </tbody>
+    </table>
+
+    <p>Le déflateur appliqué à chaque année est :</p>
+
+    <div class="formula-block">
+        <div class="label">Conversion en euros constants 2026</div>
+        Salaire_constant(t) = Salaire_courant(t) &times; IPC<sub>2026</sub> &divide; IPC<sub>t</sub>
+    </div>
+
+    <p>
+        L'indice de 1950 n'étant pas présent dans le fichier (base 1951), il a été estimé en
+        déduisant l'inflation de 1951 (+16,7 %, issu de la colonne <em>Prix</em> de EVO_CR) :
+        IPC<sub>1950</sub> = 100 / 1,167 &asymp; 85,7.
+    </p>
+
+    <div class="note">
+        <strong>Note :</strong> Le taux d'inflation 2026 (+1,5 %) est une estimation fondée
+        sur la publication INSEE de mars 2026 faisant état d'une hausse des prix de +1,7 % en
+        glissement annuel. L'impact d'une erreur sur cette estimation est très marginal, l'année
+        2026 n'étant utilisée que comme base de référence du déflateur.
+    </div>
+
+    <!-- STEP 5 -->
+    <h3>3.6 Conversion en valeurs mensuelles (étape 5)</h3>
+    <p>
+        Les salaires nets issus de EQTP01 sont exprimés en <strong>euros annuels</strong>. Pour
+        obtenir des valeurs mensuelles comparables, tous les montants (net, brut, coût employeur)
+        sont divisés par 12.
+    </p>
+
+    <!-- ========== RESULTS ========== -->
+    <h2>4. Résultats</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Année</th>
+                <th>Salaire net</th>
+                <th>Salaire brut</th>
+                <th>Coût employeur</th>
+                <th>t<sub>s</sub> eff. (%)</th>
+                <th>t<sub>p</sub> eff. (%)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>1950</td><td class="num">746 &euro;</td><td class="num">791 &euro;</td><td class="num">986 &euro;</td><td class="num">5,6</td><td class="num">24,8</td></tr>
+            <tr><td>1960</td><td class="num">1 151 &euro;</td><td class="num">1 218 &euro;</td><td class="num">1 511 &euro;</td><td class="num">5,5</td><td class="num">24,1</td></tr>
+            <tr><td>1970</td><td class="num">1 710 &euro;</td><td class="num">1 862 &euro;</td><td class="num">2 473 &euro;</td><td class="num">8,2</td><td class="num">32,8</td></tr>
+            <tr><td>1980</td><td class="num">2 234 &euro;</td><td class="num">2 562 &euro;</td><td class="num">3 560 &euro;</td><td class="num">12,8</td><td class="num">39,0</td></tr>
+            <tr><td>1990</td><td class="num">2 425 &euro;</td><td class="num">2 955 &euro;</td><td class="num">4 077 &euro;</td><td class="num">17,9</td><td class="num">37,9</td></tr>
+            <tr><td>2000</td><td class="num">2 541 &euro;</td><td class="num">3 217 &euro;</td><td class="num">4 528 &euro;</td><td class="num">21,0</td><td class="num">40,8</td></tr>
+            <tr><td>2010</td><td class="num">2 693 &euro;</td><td class="num">3 429 &euro;</td><td class="num">4 860 &euro;</td><td class="num">21,5</td><td class="num">41,7</td></tr>
+            <tr><td>2018</td><td class="num">2 775 &euro;</td><td class="num">3 532 &euro;</td><td class="num">4 941 &euro;</td><td class="num">21,4</td><td class="num">39,9</td></tr>
+        </tbody>
+    </table>
+
+    <p style="font-size:0.9rem; color:var(--color-muted);">
+        Valeurs mensuelles en euros constants 2026. t<sub>s</sub> eff. et t<sub>p</sub> eff. =
+        taux effectifs (moyens pondérés entre tranches lorsque le brut excède le plafond).
+        Barème non-cadres, y.c. CSG/CRDS.
+    </p>
+
+    <!-- ========== LIMITATIONS ========== -->
+    <h2>5. Limites et précautions d'interprétation</h2>
+
+    <ol style="padding-left:1.5rem;">
+        <li style="margin-bottom:0.8rem;">
+            <strong>Barème non-cadres.</strong> Les taux de cotisation utilisés sont ceux
+            applicables aux salariés <em>non-cadres</em>. Les barèmes cadres diffèrent
+            pour la retraite complémentaire (AGIRC puis Agirc-Arrco), l'APEC, la prévoyance
+            et la CET. Le salaire moyen étant une moyenne pondérée de cadres et non-cadres,
+            les taux effectifs réels se situent entre les deux barèmes. Le calcul par tranche
+            (CS3/CP2) assure en revanche une prise en compte correcte du dépassement du
+            plafond dans les années 1950–1980.
+        </li>
+        <li style="margin-bottom:0.8rem;">
+            <strong>Allègements de cotisations patronales.</strong> Depuis les années 1990,
+            d'importants dispositifs d'allègement des cotisations patronales sur les bas
+            salaires ont été mis en place (ristourne Juppé, loi Fillon, CICE, etc.). Ces
+            allègements ne sont pas pris en compte ici : les taux utilisés sont les taux
+            <em>faciaux</em>, non les taux effectifs. Le coût employeur réel pour les
+            salaires proches du SMIC est donc surestimé à partir du milieu des années 1990.
+        </li>
+        <li style="margin-bottom:0.8rem;">
+            <strong>Périmètre géographique.</strong> Le champ couvert est la France
+            métropolitaine jusqu'en 1999, puis la France hors Mayotte à partir de 2000
+            (source EQTP01).
+        </li>
+        <li style="margin-bottom:0.8rem;">
+            <strong>Champ des salariés.</strong> Les données couvrent les salariés du privé
+            et des entreprises publiques, y compris les bénéficiaires de contrats aidés,
+            apprentis et stagiaires, mais hors salariés agricoles et des
+            particuliers-employeurs.
+        </li>
+        <li style="margin-bottom:0.8rem;">
+            <strong>Rétro-extrapolation avant 1996.</strong> Avant 1996, le niveau du salaire
+            net est reconstitué par chaînage arrière des taux de croissance. Toute erreur
+            dans les taux de croissance se cumule sur la période. La cohérence de la série a
+            été vérifiée par comparaison avec les ordres de grandeur connus du salaire moyen
+            dans les années 1950–1980.
+        </li>
+        <li style="margin-bottom:0.8rem;">
+            <strong>Inflation 2026.</strong> Le taux d'inflation retenu pour 2026 (+1,5 %) est
+            une estimation. L'incidence sur les résultats est négligeable (modification
+            proportionnelle de l'ensemble des valeurs).
+        </li>
+        <li style="margin-bottom:0.8rem;">
+            <strong>Passage aux 35 heures.</strong> La durée légale hebdomadaire est passée de
+            40 à 39 heures en 1982, puis à 35 heures en 2000 (entreprises de plus de
+            20 salariés) et 2002 (autres). Le salaire est exprimé en équivalent temps plein
+            et les taux de cotisation ne sont pas ajustés pour la durée du travail.
+        </li>
+    </ol>
+
+    <!-- ========== REFERENCES ========== -->
+    <h2>6. Références</h2>
+    <ul style="padding-left:1.5rem;">
+        <li>
+            INSEE, <em>Base Tous salariés 2018 — séries longues sur les salaires</em>,
+            fichiers EQTP01, EVO_CR, PLAFOND, inflation.
+            <br><a href="https://www.insee.fr/fr/statistiques/4268033">https://www.insee.fr/fr/statistiques/4268033</a>
+        </li>
+        <li style="margin-top:0.5rem;">
+            INSEE, <em>En 2025, nouveau ralentissement des prix à la consommation en moyenne
+            annuelle</em>, Informations rapides n°8, janvier 2026.
+            <br><a href="https://www.insee.fr/fr/statistiques/8726461">https://www.insee.fr/fr/statistiques/8726461</a>
+        </li>
+        <li style="margin-top:0.5rem;">
+            INSEE, <em>En mars 2026, les prix à la consommation augmentent de 1,7 % sur un an</em>,
+            Informations rapides n°83, avril 2026.
+            <br><a href="https://www.insee.fr/fr/statistiques/8964202">https://www.insee.fr/fr/statistiques/8964202</a>
+        </li>
+        <li style="margin-top:0.5rem;">
+            INSEE, <em>Accélération des prix à la consommation en moyenne en 2021</em>,
+            Informations rapides n°10, janvier 2022.
+            <br><a href="https://www.insee.fr/fr/statistiques/6036866">https://www.insee.fr/fr/statistiques/6036866</a>
+        </li>
+    </ul>
+
+</main>
+
+<footer>
+    Document généré en avril 2026. Code source : <code>salary_decomposition.py</code>.
+</footer>
+
+</body>
+</html>
