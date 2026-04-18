@@ -872,8 +872,9 @@ ax3b.spines['top'].set_visible(False)
 ax3b.spines['right'].set_visible(False)
 
 ax3b.yaxis.set_major_formatter(mticker.FuncFormatter(
-    lambda x, _: f'{x:,.0f}'.replace(',', r'\,') + r'\,\euro{}' if x >= 1000
-    else f'{x:.0f}' + r'\,\euro{}'))
+    lambda x, _: '' if x == 0
+    else (f'{x:,.0f}'.replace(',', r'\,') + r'\,\euro{}' if x >= 1000
+          else f'{x:.0f}' + r'\,\euro{}')))
 
 # Place labels between the lines
 x_label = 2005
@@ -882,7 +883,7 @@ y_ret_mid = (net_monthly[i_label] + net_plus_ret[i_label]) / 2
 y_other_mid = (net_plus_ret[i_label] + cost_monthly[i_label]) / 2
 ax3b.text(x_label, y_ret_mid, r'\textit{Cotisations retraite}', fontsize=24,
           ha='center', va='center')
-ax3b.text(x_label, y_other_mid, r'\textit{Autres cotisations sociales}', fontsize=24,
+ax3b.text(x_label, y_other_mid, r'\textit{Autres cotisations}', fontsize=24,
           ha='center', va='center')
 
 # Place curve labels at the right end of each line
@@ -908,9 +909,11 @@ x_ir_label = 1985
 i_ir_label = list(years).index(x_ir_label)
 y_ir_mid = (net_after_tax_monthly[i_ir_label] + net_monthly[i_ir_label]) / 2
 y_ir_target = (net_after_tax_monthly[i_ir_label] + net_monthly[i_ir_label]) / 2 + 100
+x_ir_text = 2000
+i_ir_text = list(years).index(x_ir_text)
 ax3b.annotate(r"\textit{Imp\^{o}t sur le revenu}",
               xy=(x_ir_label + 5, y_ir_target),
-              xytext=(x_ir_label - 3, net_after_tax_monthly[i_ir_label] - 350),
+              xytext=(x_ir_text, net_after_tax_monthly[i_ir_text] - 500),
               fontsize=21, ha='center', va='top',
               arrowprops=dict(arrowstyle='->', color='black', lw=0.7,
                               shrinkB=0))
