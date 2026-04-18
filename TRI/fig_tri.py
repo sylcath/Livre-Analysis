@@ -45,6 +45,15 @@ ax.minorticks_on()
 
 ax.legend(loc="upper right", frameon=True, fontsize=14)
 
+ax.annotate(
+    r"\textit{Croissance annuelle du taux de cotisation}" "\n"
+    r"\textit{\`a r\'epercuter sur les g\'en\'erations suivantes}",
+    xy=(1962, 0.0154), xycoords='data',
+    xytext=(1941, 0.0075), textcoords='data',
+    fontsize=15, ha='left', va='center',
+    arrowprops=dict(arrowstyle='->', color='black', lw=0.8),
+)
+
 plt.tight_layout()
 plt.savefig(DATA_DIR / "Fig_A2_11.pdf")
 plt.savefig(DATA_DIR / "Fig_A2_11.png", dpi=150)
