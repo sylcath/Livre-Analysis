@@ -203,19 +203,22 @@ plt.rcParams.update({
 
 fig3, ax3 = plt.subplots(figsize=(15, 8))
 
-ax3.plot(s_stock.index, s_stock.values, 'k-o', markersize=6, linewidth=2.0,
-         label=r"CAC40")
+ax3.plot(s_stock.index, s_stock.values, 'k-o', markersize=6, linewidth=2.0)
 ax3.plot(s_blend.index, s_blend.values, 'k-s', markersize=6, linewidth=2.0,
-         markerfacecolor='gray',
-         label=r"67\,\% notionnel $+$ 33\,\% CAC40")
+         markerfacecolor='gray')
 ax3.plot(s_gdp.index, s_gdp.values, 'k-^', markersize=6, linewidth=1.4,
-         markerfacecolor='white',
-         label=r"100\,\% notionnel")
+         markerfacecolor='white')
 ax3.set_xlabel(r"Ann\'ee d'entr\'ee sur le march\'e du travail", fontsize=27)
-# no y-axis title
-ax3.legend(fontsize=25, loc="upper right")
 ax3.grid(True, alpha=0.3)
 ax3.set_xlim(s_stock.index[0] - 1, s_stock.index[-1] + 1)
+
+# Inline labels at the right of the last data point (instead of legend)
+label_offset = 0.8
+for series, label in [(s_stock, r"100\,\% CAC40"),
+                      (s_blend, r"67\,\% notionnel $+$" "\n" r"33\,\% CAC40"),
+                      (s_gdp, r"100\,\% notionnel")]:
+    ax3.text(series.index[-1] + label_offset, series.values[-1], label,
+             fontsize=22, va='center', ha='left')
 
 # Remove top/right spines, keep bottom/left in black
 ax3.spines['top'].set_visible(False)
@@ -230,6 +233,7 @@ ax3.set_yticks(yticks)
 ax3.set_yticklabels(['' if t == 0 else f'{t:g}' for t in yticks])
 
 plt.tight_layout()
+plt.subplots_adjust(right=0.82)
 plt.savefig(OUT_DIR / "taux_recuperation_bw.pdf")
 plt.savefig(OUT_DIR / "taux_recuperation_bw.png", dpi=150)
 print("Book version (B&W PDF) saved")
