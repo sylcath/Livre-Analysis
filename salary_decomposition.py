@@ -756,7 +756,7 @@ def fmt_euro_fr_tex(x, _):
     return s + r'\,\euro{}'
 
 
-fig3b, ax3b = plt.subplots(figsize=(12, 10.5))
+fig3b, ax3b = plt.subplots(figsize=(12, 13.965))
 
 # --- Compute income tax before plotting (needs to be available for figure) ---
 # Read IPP income tax schedule
