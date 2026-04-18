@@ -855,6 +855,8 @@ net_after_tax_monthly = np.array([
 ])
 print(f"  Income tax computed for {len(ir_annual)} years")
 
+ax3b.fill_between(years, net_monthly, net_plus_ret, color='gray', alpha=0.25)
+
 ax3b.plot(years, cost_monthly, color='black', linewidth=2.5)
 ax3b.plot(years, net_plus_ret, color='black', linewidth=2.5, linestyle='--')
 ax3b.plot(years, net_monthly, color='black', linewidth=2.5, linestyle='-.')
