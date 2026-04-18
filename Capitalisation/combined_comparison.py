@@ -198,17 +198,17 @@ plt.rcParams.update({
     "text.usetex": True,
     "font.family": "serif",
     "font.serif": ["Computer Modern Roman"],
-    "font.size": 25,
+    "font.size": 34,
 })
 
-fig3, ax3 = plt.subplots(figsize=(15, 8))
+fig3, ax3 = plt.subplots(figsize=(15, 12))
 
 ax3.plot(s_stock.index, s_stock.values, 'k-o', markersize=6, linewidth=2.0)
 ax3.plot(s_blend.index, s_blend.values, 'k-s', markersize=6, linewidth=2.0,
          markerfacecolor='gray')
 ax3.plot(s_gdp.index, s_gdp.values, 'k-^', markersize=6, linewidth=1.4,
          markerfacecolor='white')
-ax3.set_xlabel(r"Ann\'ee d'entr\'ee sur le march\'e du travail", fontsize=27)
+ax3.set_xlabel(r"Ann\'ee d'entr\'ee sur le march\'e du travail", fontsize=36)
 ax3.grid(True, alpha=0.3)
 ax3.set_xlim(s_stock.index[0] - 1, s_stock.index[-1] + 1)
 
@@ -218,7 +218,7 @@ for series, label in [(s_stock, r"100\,\% CAC40"),
                       (s_blend, r"67\,\% notionnel $+$" "\n" r"33\,\% CAC40"),
                       (s_gdp, r"100\,\% notionnel")]:
     ax3.text(series.index[-1] + label_offset, series.values[-1], label,
-             fontsize=22, va='center', ha='left')
+             fontsize=30, va='center', ha='left')
 
 # Remove top/right spines, keep bottom/left in black
 ax3.spines['top'].set_visible(False)
@@ -233,10 +233,48 @@ ax3.set_yticks(yticks)
 ax3.set_yticklabels(['' if t == 0 else f'{t:g}' for t in yticks])
 
 plt.tight_layout()
-plt.subplots_adjust(right=0.82)
+plt.subplots_adjust(right=0.78)
 plt.savefig(OUT_DIR / "taux_recuperation_bw.pdf")
 plt.savefig(OUT_DIR / "taux_recuperation_bw.png", dpi=150)
 print("Book version (B&W PDF) saved")
+
+# ── Plot: Book version, x-axis = year of exit (retirement) ───────────────────
+s_stock_exit = pd.Series(s_stock.values, index=s_stock.index + DURATION)
+s_blend_exit = pd.Series(s_blend.values, index=s_blend.index + DURATION)
+s_gdp_exit = pd.Series(s_gdp.values, index=s_gdp.index + DURATION)
+
+fig4, ax4 = plt.subplots(figsize=(15, 12))
+
+ax4.plot(s_stock_exit.index, s_stock_exit.values, 'k-o', markersize=6, linewidth=2.0)
+ax4.plot(s_blend_exit.index, s_blend_exit.values, 'k-s', markersize=6, linewidth=2.0,
+         markerfacecolor='gray')
+ax4.plot(s_gdp_exit.index, s_gdp_exit.values, 'k-^', markersize=6, linewidth=1.4,
+         markerfacecolor='white')
+ax4.set_xlabel(r"Ann\'ee de sortie du march\'e du travail", fontsize=36)
+ax4.grid(True, alpha=0.3)
+ax4.set_xlim(s_stock_exit.index[0] - 1, s_stock_exit.index[-1] + 1)
+
+for series, label in [(s_stock_exit, r"100\,\% CAC40"),
+                      (s_blend_exit, r"67\,\% notionnel $+$" "\n" r"33\,\% CAC40"),
+                      (s_gdp_exit, r"100\,\% notionnel")]:
+    ax4.text(series.index[-1] + label_offset, series.values[-1], label,
+             fontsize=30, va='center', ha='left')
+
+ax4.spines['top'].set_visible(False)
+ax4.spines['right'].set_visible(False)
+ax4.spines['left'].set_color('black')
+ax4.spines['bottom'].set_color('black')
+ax4.set_ylim(bottom=0)
+
+yticks4 = [t for t in ax4.get_yticks() if t >= 0]
+ax4.set_yticks(yticks4)
+ax4.set_yticklabels(['' if t == 0 else f'{t:g}' for t in yticks4])
+
+plt.tight_layout()
+plt.subplots_adjust(right=0.78)
+plt.savefig(OUT_DIR / "taux_recuperation_bw_sortie.pdf")
+plt.savefig(OUT_DIR / "taux_recuperation_bw_sortie.png", dpi=150)
+print("Book version exit-year (B&W PDF) saved")
 
 # Reset rcParams
 plt.rcParams.update(plt.rcParamsDefault)
