@@ -85,14 +85,18 @@ for _, row in df_eqtp.iterrows():
         continue
 print(f"  EQTP01: actual net salary for {min(eqtp_net)}-{max(eqtp_net)}")
 
-# 1a-bis. Extend with 2019-2020 from INSEE Premières n°1863 and n°1898
-# 2019: 2,424 €/month net EQTP (INSEE Première 1863, June 2021)
-# 2020: 2,518 €/month net EQTP (INSEE Première 1898, April 2022)
-# Note: 2020 is affected by COVID composition effects (partial unemployment
-# removed low-wage workers from EQTP, artificially raising the average).
-eqtp_net[2019] = 2424 * 12  # 29,088 €/year
-eqtp_net[2020] = 2518 * 12  # 30,216 €/year
-print(f"  Extended with INSEE Premières: 2019={eqtp_net[2019]:,}€  2020={eqtp_net[2020]:,}€")
+# 1a-bis. Replace EQTP01 (base 2018) with the INSEE BDM revised series
+# (série 010752333, last updated 2025-12-18). This series is consistent
+# across all years 1996-2023 and avoids the base-revision break.
+bdm_revised = {
+    1996: 18459, 1997: 18795, 1998: 19088, 1999: 19484, 2000: 19893,
+    2001: 20356, 2002: 20786, 2003: 21224, 2004: 21704, 2005: 22323,
+    2006: 22733, 2007: 23454, 2008: 24176, 2009: 24497, 2010: 24992,
+    2011: 25611, 2012: 26000, 2013: 26166, 2014: 26435, 2015: 26743,
+    2016: 26901, 2017: 27426, 2018: 28024, 2019: 28631, 2020: 29649,
+}
+eqtp_net.update(bdm_revised)
+print(f"  Updated with INSEE BDM revised series (010752333): 1996-2020")
 
 # 1b. Read EVO_CR: year-over-year % growth of average net salary (col 9)
 df_evo = read_xlsx(DATA_DIR + "EVO_CR.xlsx")
@@ -730,39 +734,203 @@ def fmt_euro_fr(x, _):
     return f'{x:,.0f}\N{NO-BREAK SPACE}€'
 
 
-fig3b, ax3b = plt.subplots(figsize=(12, 7))
+# Enable LaTeX rendering for Computer Modern font (matching Matlab TeX style)
+plt.rcParams.update({
+    'text.usetex': True,
+    'text.latex.preamble': r'\usepackage{eurosym}',
+    'font.family': 'serif',
+    'font.serif': ['Computer Modern Roman'],
+    'axes.labelsize': 27,
+    'xtick.labelsize': 22.5,
+    'ytick.labelsize': 22.5,
+})
 
-ax3b.plot(years, cost_monthly, color='black', linewidth=2, label='Coût employeur')
-ax3b.plot(years, net_plus_ret, color='black', linewidth=2, linestyle='--',
-          label='Salaire net + cotisations retraite')
-ax3b.plot(years, net_monthly, color='black', linewidth=2, linestyle='-.',
-          label='Salaire net')
 
-ax3b.set_xlabel('Année', fontsize=12)
-ax3b.set_ylabel('Euros constants 2026 (mensuel)', fontsize=12)
+def fmt_euro_fr_tex(x, _):
+    """Format euros with French conventions for LaTeX rendering."""
+    if x >= 1000:
+        # Use \, for thin space in LaTeX
+        s = f'{x:,.0f}'.replace(',', r'\,')
+    else:
+        s = f'{x:.0f}'
+    return s + r'\,\euro{}'
 
-ax3b.legend(loc='upper left', fontsize=10, framealpha=0.9)
-ax3b.grid(True, alpha=0.3, color='grey')
+
+fig3b, ax3b = plt.subplots(figsize=(12, 10.5))
+
+# --- Compute income tax before plotting (needs to be available for figure) ---
+# Read IPP income tax schedule
+if not os.path.exists('ipp_ir_fixed.xlsx'):
+    fix_strict_xlsx('ipp_ir.xlsx')
+    os.rename('ipp_ir.xlsx.tmp.xlsx', 'ipp_ir_fixed.xlsx')
+_ipp_xls = pd.ExcelFile('ipp_ir_fixed.xlsx')
+# Sheet name may be mangled due to encoding; find the IR schedule sheet
+_ir_sheet = [s for s in _ipp_xls.sheet_names if 'IR' in s and 'IGR' not in s][0]
+df_ir = pd.read_excel(_ipp_xls, sheet_name=_ir_sheet, header=None)
+
+ir_schedules = {}
+for r in range(3, 72):
+    try:
+        rev_year = int(df_ir.iloc[r, 1])
+    except (ValueError, TypeError):
+        continue
+    thresholds_ir = []
+    rates_ir = []
+    for i in range(14):
+        t = df_ir.iloc[r, 2 + i]
+        m = df_ir.iloc[r, 16 + i]
+        # Handle Excel date-parsing bug: some thresholds are misread as datetime
+        import datetime
+        if isinstance(t, (datetime.datetime, pd.Timestamp)):
+            # Convert back: Excel serial date = days since 1899-12-30
+            t = float((t - pd.Timestamp('1899-12-30')).days)
+        if isinstance(t, (int, float)) and not np.isnan(t):
+            thresholds_ir.append(float(t))
+            rates_ir.append(float(m) if isinstance(m, (int, float)) and not np.isnan(m) else 0.0)
+    if rev_year <= 1959:
+        thresholds_ir = [t / 655.957 for t in thresholds_ir]
+    elif rev_year <= 2000:
+        thresholds_ir = [t / 6.55957 for t in thresholds_ir]
+    ir_schedules[rev_year] = (thresholds_ir, rates_ir)
+
+# Extend with known schedules for 2014-2020
+ir_schedules[2014] = ([0, 6011, 11991, 26631, 71397, 151200], [0, 0.055, 0.14, 0.30, 0.41, 0.45])
+for rev_y, bounds in [(2015, [0, 9690, 26764, 71754, 151956]),
+                       (2016, [0, 9700, 26791, 71826, 152108]),
+                       (2017, [0, 9710, 26818, 71898, 152260]),
+                       (2018, [0, 9964, 27519, 73779, 156244])]:
+    ir_schedules[rev_y] = (bounds, [0, 0.14, 0.30, 0.41, 0.45])
+ir_schedules[2019] = ([0, 10064, 27794, 74517, 157806], [0, 0.11, 0.30, 0.41, 0.45])
+ir_schedules[2020] = ([0, 10084, 25710, 73516, 158122], [0, 0.11, 0.30, 0.41, 0.45])
+
+def compute_ir(taxable_income, thresholds, rates):
+    tax = 0.0
+    for i in range(len(thresholds)):
+        upper = thresholds[i + 1] if i + 1 < len(thresholds) else float('inf')
+        bracket_income = min(taxable_income, upper) - thresholds[i]
+        if bracket_income <= 0:
+            break
+        tax += bracket_income * rates[i]
+    return tax
+
+# Read supplementary deduction (abattement de 20%, then 15%, 10%) from Déductions sheet
+# The IPP file only lists years when the rate changed; we forward-fill for intermediate years.
+_deduc_sheet = [s for s in _ipp_xls.sheet_names if 'duction' in s][0]
+df_deduc = pd.read_excel(_ipp_xls, sheet_name=_deduc_sheet, header=None)
+supp_deduction_raw = {}  # rev_year -> rate
+for r in range(3, len(df_deduc)):
+    try:
+        rev_y = int(df_deduc.iloc[r, 1])
+        tx = df_deduc.iloc[r, 2]
+        if isinstance(tx, (int, float)) and not np.isnan(tx):
+            supp_deduction_raw[rev_y] = tx
+    except (ValueError, TypeError):
+        continue
+
+# Forward-fill: for each year from earliest to 2005, carry forward the last known rate
+supp_deduction = {}
+if supp_deduction_raw:
+    earliest = min(supp_deduction_raw.keys())
+    last_rate = supp_deduction_raw[earliest]
+    for y in range(earliest, 2006):  # ends in 2005 (removed in 2006)
+        if y in supp_deduction_raw:
+            last_rate = supp_deduction_raw[y]
+        supp_deduction[y] = last_rate
+
+ir_annual = {}
+for y in all_years:
+    if y not in ir_schedules:
+        continue
+    # 10% deduction for professional expenses (all years)
+    taxable = net_annual[y] * 0.90
+    # Additional supplementary deduction (20% on salaries, until 2005)
+    if y in supp_deduction:
+        taxable *= (1 - supp_deduction[y])
+    th, ra = ir_schedules[y]
+    ir_annual[y] = compute_ir(taxable, th, ra)
+
+net_after_tax_monthly = np.array([
+    (net_annual[y] - ir_annual.get(y, 0)) / 12 * CPI_2026 / cpi_index[y]
+    for y in years
+])
+print(f"  Income tax computed for {len(ir_annual)} years")
+
+ax3b.plot(years, cost_monthly, color='black', linewidth=2.5)
+ax3b.plot(years, net_plus_ret, color='black', linewidth=2.5, linestyle='--')
+ax3b.plot(years, net_monthly, color='black', linewidth=2.5, linestyle='-.')
+ax3b.plot(years, net_after_tax_monthly, color='black', linewidth=1.2, linestyle='-')
+
+ax3b.set_xlabel(r'Ann\'{e}e', fontsize=27)
+ax3b.set_ylabel(r'Euros de 2026', fontsize=27)
+
+ax3b.grid(True, alpha=0.4, color='grey', linewidth=0.5)
 ax3b.set_xlim(years[0], years[-1])
 ax3b.set_ylim(0)
 
-ax3b.yaxis.set_major_formatter(mticker.FuncFormatter(fmt_euro_fr))
+# Remove top and right spines (box)
+ax3b.spines['top'].set_visible(False)
+ax3b.spines['right'].set_visible(False)
 
-# Place labels between the lines (positioned at 2005 where curves are well separated)
+ax3b.yaxis.set_major_formatter(mticker.FuncFormatter(
+    lambda x, _: f'{x:,.0f}'.replace(',', r'\,') + r'\,\euro{}' if x >= 1000
+    else f'{x:.0f}' + r'\,\euro{}'))
+
+# Place labels between the lines
 x_label = 2005
 i_label = list(years).index(x_label)
 y_ret_mid = (net_monthly[i_label] + net_plus_ret[i_label]) / 2
 y_other_mid = (net_plus_ret[i_label] + cost_monthly[i_label]) / 2
-ax3b.text(x_label, y_ret_mid, 'Cotisations\nretraite', fontsize=11,
-          ha='center', va='center', style='italic')
-ax3b.text(x_label, y_other_mid, 'Autres cotisations\nsociales', fontsize=11,
-          ha='center', va='center', style='italic')
+ax3b.text(x_label, y_ret_mid, r'\textit{Cotisations retraite}', fontsize=24,
+          ha='center', va='center')
+ax3b.text(x_label, y_other_mid, r'\textit{Autres cotisations sociales}', fontsize=24,
+          ha='center', va='center')
 
-plt.tight_layout()
+# Place curve labels at the right end of each line
+x_end = years[-1]
+i_end = len(years) - 1
+ax3b.annotate(r'\textbf{Co\^{u}t employeur}', xy=(x_end, cost_monthly[i_end]),
+              xytext=(8, 0), textcoords='offset points',
+              fontsize=22.5, va='center')
+ax3b.annotate(r'Salaire net +' + '\n' + r'cotisations retraite',
+              xy=(x_end, net_plus_ret[i_end]),
+              xytext=(8, 0), textcoords='offset points',
+              fontsize=22.5, va='center')
+ax3b.annotate(r'Salaire net', xy=(x_end, net_monthly[i_end]),
+              xytext=(8, 6), textcoords='offset points',
+              fontsize=22.5, va='bottom')
+ax3b.annotate(r"Salaire net apr\`{e}s" + '\n' + r"imp\^{o}t sur le revenu",
+              xy=(x_end, net_after_tax_monthly[i_end]),
+              xytext=(8, -6), textcoords='offset points',
+              fontsize=22.5, va='top')
+
+# Label for income tax zone: place below with arrow pointing into the gap
+x_ir_label = 1985
+i_ir_label = list(years).index(x_ir_label)
+y_ir_mid = (net_after_tax_monthly[i_ir_label] + net_monthly[i_ir_label]) / 2
+y_ir_target = (net_after_tax_monthly[i_ir_label] + net_monthly[i_ir_label]) / 2 + 100
+ax3b.annotate(r"\textit{Imp\^{o}t sur le revenu}",
+              xy=(x_ir_label + 5, y_ir_target),
+              xytext=(x_ir_label - 3, net_after_tax_monthly[i_ir_label] - 350),
+              fontsize=21, ha='center', va='top',
+              arrowprops=dict(arrowstyle='->', color='black', lw=0.7,
+                              shrinkB=0))
+
+# Add right margin for labels
+fig3b.subplots_adjust(right=0.78)
+
 plt.savefig('net_retirement_cost_bw.png', dpi=300, bbox_inches='tight')
 plt.savefig('net_retirement_cost_bw.svg', bbox_inches='tight')
-plt.savefig('net_retirement_cost_bw.pdf', bbox_inches='tight')
+try:
+    plt.savefig('net_retirement_cost_bw.pdf', bbox_inches='tight')
+except PermissionError:
+    print("  WARNING: could not write PDF (file locked)")
 print("  Saved net_retirement_cost_bw.png/.svg/.pdf")
+
+# Reset rcParams for subsequent figures
+plt.rcParams.update({
+    'text.usetex': False,
+    'font.family': 'sans-serif',
+})
 
 # Summary
 print(f"\n  {'Year':>4}  {'Net':>8}  {'Net+Ret':>8}  {'Cost':>8}  {'Ret share':>10}")
@@ -775,3 +943,105 @@ for y_show in [1950, 1960, 1970, 1980, 1990, 2000, 2010, 2018, 2020]:
         ret_share = ret_monthly[i] / wedge * 100 if wedge > 0 else 0
         print(f"  {y_show:>4}  {net_monthly[i]:>7,.0f}€  {net_plus_ret[i]:>7,.0f}€  {cost_monthly[i]:>7,.0f}€"
               f"  {ret_share:>9.1f}%")
+
+
+# =====================================================================
+# 9. FIGURE 4: Retirement contributions as % of net salary
+# =====================================================================
+print()
+print("=" * 70)
+print("STEP 9: Retirement contributions as % of net salary (Figure 4)")
+print("=" * 70)
+
+ret_pct_of_net = ret_monthly / net_monthly * 100
+
+fig4, ax4 = plt.subplots(figsize=(12, 5))
+
+ax4.plot(years, ret_pct_of_net, color='black', linewidth=2)
+ax4.fill_between(years, 0, ret_pct_of_net, alpha=0.15, color='black')
+
+ax4.set_xlabel('Année', fontsize=18)
+ax4.set_ylabel('% du salaire net', fontsize=18)
+ax4.set_title('Cotisations retraite en pourcentage du salaire net\n(temps complet)',
+              fontsize=21, fontweight='bold')
+
+ax4.tick_params(axis='both', labelsize=15)
+ax4.grid(True, alpha=0.3)
+ax4.set_xlim(years[0], years[-1])
+ax4.set_ylim(0)
+
+ax4.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'{x:.0f}\N{NO-BREAK SPACE}%'))
+
+plt.tight_layout()
+plt.savefig('retirement_pct_net.png', dpi=150, bbox_inches='tight')
+plt.savefig('retirement_pct_net.svg', bbox_inches='tight')
+print("  Saved retirement_pct_net.png and .svg")
+
+print(f"\n  {'Year':>4}  {'Ret/Net':>8}")
+print(f"  {'----':>4}  {'-------':>8}")
+for y_show in [1950, 1960, 1970, 1980, 1990, 2000, 2010, 2018, 2020]:
+    idx_list = np.where(years == y_show)[0]
+    if len(idx_list) > 0:
+        i = idx_list[0]
+        print(f"  {y_show:>4}  {ret_pct_of_net[i]:>7.1f}%")
+
+
+# =====================================================================
+# 9b. FIGURE 4b: Retirement contributions as % of post-tax income
+# =====================================================================
+print()
+print("=" * 70)
+print("STEP 9b: Retirement contributions as % of post-tax income")
+print("=" * 70)
+
+ret_pct_of_posttax = ret_monthly / net_after_tax_monthly * 100
+
+fig4b, ax4b = plt.subplots(figsize=(12, 5))
+
+ax4b.plot(years, ret_pct_of_posttax, color='black', linewidth=2)
+ax4b.fill_between(years, 0, ret_pct_of_posttax, alpha=0.15, color='black')
+
+ax4b.set_xlabel('Année', fontsize=18)
+ax4b.set_ylabel(r"\% du revenu net d'imp\^{o}t", fontsize=18)
+ax4b.set_title(r"Cotisations retraite en pourcentage du revenu net d'imp\^{o}t" + '\n'
+               + r'(temps complet, c\'{e}libataire)',
+               fontsize=21, fontweight='bold')
+
+ax4b.tick_params(axis='both', labelsize=15)
+ax4b.grid(True, alpha=0.3)
+ax4b.set_xlim(years[0], years[-1])
+ax4b.set_ylim(0)
+ax4b.spines['top'].set_visible(False)
+ax4b.spines['right'].set_visible(False)
+
+ax4b.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'{x:.0f}\N{NO-BREAK SPACE}\\%'))
+
+plt.tight_layout()
+plt.savefig('retirement_pct_posttax.png', dpi=150, bbox_inches='tight')
+plt.savefig('retirement_pct_posttax.svg', bbox_inches='tight')
+print("  Saved retirement_pct_posttax.png and .svg")
+
+print(f"\n  {'Year':>4}  {'Ret/PostTax':>12}")
+print(f"  {'----':>4}  {'-----------':>12}")
+for y_show in [1950, 1960, 1970, 1980, 1990, 2000, 2010, 2018, 2020]:
+    idx_list = np.where(years == y_show)[0]
+    if len(idx_list) > 0:
+        i = idx_list[0]
+        print(f"  {y_show:>4}  {ret_pct_of_posttax[i]:>11.1f}%")
+
+
+# Print income tax summary
+print()
+print("=" * 70)
+print("Income tax summary (single person, 1 part, 10% deduction)")
+print("=" * 70)
+print(f"\n  {'Year':>4}  {'Net/mo':>8}  {'IR/mo':>8}  {'After IR':>8}  {'IR rate':>8}")
+print(f"  {'----':>4}  {'------':>8}  {'-----':>8}  {'--------':>8}  {'-------':>8}")
+for y_show in [1950, 1960, 1970, 1980, 1990, 2000, 2010, 2018, 2020]:
+    idx = np.where(years == y_show)[0]
+    if len(idx) > 0:
+        i = idx[0]
+        ir_mo = ir_annual.get(y_show, 0) / 12 * CPI_2026 / cpi_index[y_show]
+        rate = ir_annual.get(y_show, 0) / net_annual[y_show] * 100 if net_annual[y_show] > 0 else 0
+        print(f"  {y_show:>4}  {net_monthly[i]:>7,.0f}€  {ir_mo:>7,.0f}€  "
+              f"{net_after_tax_monthly[i]:>7,.0f}€  {rate:>7.1f}%")
