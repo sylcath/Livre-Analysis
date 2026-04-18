@@ -1,0 +1,11 @@
+.claude/
+
+# Excel lockfiles
+~$*.xlsx
+
+# Temp files leaked by fix_strict_xlsx() on crashes
+*.tmp.xlsx
+*.py.tmp.*
+
+# Local backup copies (from worktree-consolidation cleanup)
+*.backup
